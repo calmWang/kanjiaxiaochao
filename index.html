@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>砍价小抄 · AI砍价师</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 40px;
+            padding: 28px 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 16px;
+        }
+        h1 { font-size: 32px; font-weight: 800; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .badge { background: #fee2e2; color: #dc2626; font-size: 12px; padding: 4px 12px; border-radius: 40px; font-weight: 500; }
+        .sub { color: #666; font-size: 14px; margin-bottom: 24px; }
+        .form-group { margin-bottom: 20px; }
+        label { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: block; }
+        select, input, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            background: #f8fafc;
+            font-family: inherit;
+        }
+        select {
+            padding-right: 40px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            max-width: 100%;
+        }
+        select option { padding: 10px 12px; font-size: 15px; }
+        @media (max-width: 600px) { select, select option { font-size: 15px; } }
+        .price-row { display: flex; gap: 12px; }
+        .price-row .form-group { flex: 1; }
+        button {
+            width: 100%;
+            background: linear-gradient(105deg, #0f2b4d 0%, #1e4a76 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 60px;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:active { transform: scale(0.97); }
+        button:disabled { opacity: 0.6; }
+        .result {
+            background: #f1f5f9;
+            border-radius: 28px;
+            padding: 20px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            line-height: 1.55;
+            font-size: 15px;
+            border: 1px solid #cbd5e1;
+        }
+        .pay-wall {
+            background: #fef9c3;
+            border-radius: 28px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .pay-wall h4 { font-size: 20px; margin-bottom: 8px; }
+        .price-tag { font-size: 28px; font-weight: 800; color: #b91c1c; margin: 12px 0; }
+        .pay-btn { background: #dc2626; margin-top: 10px; }
+        .code-btn { background: #3b82f6; margin-top: 10px; }
+        .footer { text-align: center; color: rgba(255,255,255,0.7); font-size: 12px; padding: 16px; }
+        .alert { background: #ffedd5; border-left: 6px solid #f59e0b; padding: 12px; border-radius: 20px; margin-bottom: 20px; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>📝 砍价小抄 <span class="badge">AI生成</span></h1>
+        <div class="sub">AI砍价话术生成器 · 仅供参考</div>
+        <div id="balanceAlert" class="alert" style="display: none;"></div>
+        <div class="form-group">
+            <label>📦 商品类型</label>
+            <select id="typeSelect">
+                <option value="衣服/鞋子">衣服/鞋子</option>
+                <option value="数码产品">数码产品</option>
+                <option value="新车">新车</option>
+                <option value="二手车">二手车</option>
+                <option value="新房">新房</option>
+                <option value="二手房">二手房</option>
+                <option value="租房">租房</option>
+                <option value="家具家电">家具家电</option>
+                <option value="菜市场买菜">菜市场买菜</option>
+                <option value="__custom__">自定义添加类型</option>
+            </select>
+        </div>
+        <div class="price-row">
+            <div class="form-group"><label>💰 商家报价（元）</label><input type="number" id="price" placeholder="例: 500"></div>
+            <div class="form-group"><label>🎯 心理价位（选填）</label><input type="number" id="target" placeholder="例: 300"></div>
+        </div>
+        <div class="form-group"><label>📝 展开说说（选填）</label><textarea id="extra" rows="2" placeholder="例: 我是学生 / 全款 / 有瑕疵 / 买三件"></textarea></div>
+        <button id="generateBtn">🚀 生成砍价小抄</button>
+        <div id="result" class="result" style="display: none;"></div>
+        <div id="paywall" class="pay-wall" style="display: none;">
+            <h4>🔓 免费次数已用完</h4>
+            <p>总共2次免费试用 · 解锁永久使用</p>
+            <div class="price-tag">¥0.9 <span style="font-size: 14px;">/次</span>  &nbsp;|&nbsp;  ¥9.9 <span style="font-size: 14px;">永久</span></div>
+            <button class="pay-btn" id="payOnceBtn">💰 支付 0.9 元（单次）</button>
+            <button class="pay-btn" id="payLifetimeBtn" style="background:#2563eb;">⭐ 永久买断 9.9 元</button>
+            <button class="code-btn" id="unlockBtn">🔑 已有激活码？点我解锁</button>
+        </div>
+    </div>
+    <div class="footer">⚡ AI生成仅供参考 · 实际以现场情况为准 · 灵活使用</div>
+</div>
+
+<script>
+    const DEEPSEEK_API_KEY = 'sk-6adc5f09be904d5eb43851dc8038d90c';
+    const FREE_TOTAL_LIMIT = 2;
+
+    // ⭐⭐⭐ 核心配置：两个不同的激活码（必须与面包多自动发货内容严格一致）⭐⭐⭐
+    const SINGLE_CODE = 'SINGLE001';      // 0.9元单次商品使用此码，每激活一次增加1次使用次数
+    const LIFETIME_CODE = 'BARGAIN2026';  // 9.9元永久商品使用此码，激活后永久解锁
+
+    // ---------- 状态管理 ----------
+    let customTypeValue = '';
+    let customTempOption = null;
+
+    function isLifetimeUser() { return localStorage.getItem('bargain_lifetime') === 'true'; }
+    function getFreeUsedCount() { return parseInt(localStorage.getItem('bargain_free_used') || '0'); }
+    function canUseFree() { return isLifetimeUser() || getFreeUsedCount() < FREE_TOTAL_LIMIT; }
+    function addFreeUsedCount() { localStorage.setItem('bargain_free_used', getFreeUsedCount() + 1); }
+
+    function getPaidCredits() { return parseInt(localStorage.getItem('bargain_paid_credits') || '0'); }
+    function addPaidCredits(c) { localStorage.setItem('bargain_paid_credits', getPaidCredits() + c); }
+    function consumePaidCredit() {
+        let c = getPaidCredits();
+        if (c > 0) { localStorage.setItem('bargain_paid_credits', c - 1); return true; }
+        return false;
+    }
+    function hasPaidCredits() { return isLifetimeUser() || getPaidCredits() > 0; }
+
+    // 永久解锁
+    function unlockLifetime() {
+        localStorage.setItem('bargain_lifetime', 'true');
+        localStorage.removeItem('bargain_free_used');
+        localStorage.removeItem('bargain_paid_credits');
+        const paywallDiv = document.getElementById('paywall');
+        if (paywallDiv) paywallDiv.style.display = 'none';
+        alert('🎉 解锁成功！现在可以永久使用，快去生成砍价方案吧～');
+    }
+
+    // 单次激活（增加一次使用次数）
+    function activateSingleUse() {
+        addPaidCredits(1);
+        alert('✅ 激活成功！增加1次使用次数。现在可以继续生成砍价方案了。');
+    }
+
+    // ---------- 余额监控 ----------
+    async function checkBalance() {
+        try {
+            const res = await fetch('/api/deepseek.js');
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data.balance;
+        } catch(e) { return null; }
+    }
+    async function monitorAndWarn() {
+        const balance = await checkBalance();
+        if (balance !== null && balance < 10) {
+            const alertDiv = document.getElementById('balanceAlert');
+            alertDiv.style.display = 'block';
+            alertDiv.innerHTML = `⚠️ 余额预警：当前余额 ${balance.toFixed(2)} 元，低于 10 元。请尽快充值。`;
+        }
+    }
+
+    // ---------- 支付跳转（安全版本，不暴露激活码）----------
+    function goToPayment(amount, type) {
+        let url = '';
+        if (type === 'once') {
+            url = 'https://mbd.pub/o/bread/YZWcmZ5vaQ==';   // 0.9元单次商品链接
+        } else {
+            url = 'https://mbd.pub/o/bread/YZWcmZ5waQ==';   // 9.9元永久商品链接
+        }
+        window.open(url, '_blank');
+        // 不再弹窗提示任何激活码，激活码由面包多自动发货，用户付款后自己拿到码再来输入
+    }
+
+    // ---------- AI 调用核心 ----------
+    async function callDeepSeek(prompt) {
+        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_API_KEY}` },
+            body: JSON.stringify({
+                model: 'deepseek-chat',
+                messages: [{ role: 'system', content: '你是砍价高手，输出接地气、有人情味、符合常识的话术，不要教用户背课文。砍价话术核心原则：1.不要主动提醒对方「你亏了」或「你还不够」；2.只说「不答应我会更痛」；3.当报价已经对对方不利时，点到为止，给台阶下，不要补刀。' }, { role: 'user', content: prompt }],
+                temperature: 0.9,
+                max_tokens: 1500
+            })
+        });
+        if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || 'API请求失败'); }
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
+
+    // ---------- 自定义类型处理 ----------
+    function clearCustomCache() {
+        customTypeValue = '';
+        if (customTempOption) {
+            customTempOption.remove();
+            customTempOption = null;
+        }
+    }
+    const selectEl = document.getElementById('typeSelect');
+    selectEl.addEventListener('change', function(e) {
+        const selectedValue = e.target.value;
+        if (selectedValue !== '__custom__') {
+            clearCustomCache();
+            return;
+        }
+        const userInput = prompt('请输入你要购买的商品或服务：', '例如：二手手机、健身房年卡等');
+        if (userInput && userInput.trim() !== '') {
+            customTypeValue = userInput.trim();
+            if (customTempOption) customTempOption.remove();
+            customTempOption = document.createElement('option');
+            customTempOption.value = customTypeValue;
+            customTempOption.text = customTypeValue;
+            customTempOption.setAttribute('data-temp', 'true');
+            customTempOption.selected = true;
+            selectEl.appendChild(customTempOption);
+        } else {
+            selectEl.value = '衣服/鞋子';
+            clearCustomCache();
+        }
+    });
+    function getProductType() {
+        const selectEl = document.getElementById('typeSelect');
+        const selectedValue = selectEl.value;
+        if (customTypeValue) return customTypeValue;
+        if (selectedValue && selectedValue !== '__custom__') return selectedValue;
+        return '衣服/鞋子';
+    }
+
+    // ---------- 主流程：生成砍价方案 ----------
+    async function generate() {
+        let type = getProductType();
+        if (!type) return;
+        const price = document.getElementById('price').value;
+        const target = document.getElementById('target').value;
+        const extra = document.getElementById('extra').value;
+        const resultDiv = document.getElementById('result');
+        const generateBtn = document.getElementById('generateBtn');
+        const paywallDiv = document.getElementById('paywall');
+
+        if (!price || parseFloat(price) <= 0) { alert('请输入商家报价'); return; }
+
+        let allowed = false, useFree = false, usePaid = false;
+        if (isLifetimeUser()) allowed = true;
+        else if (canUseFree()) { allowed = true; useFree = true; }
+        else if (hasPaidCredits()) { allowed = true; usePaid = true; }
+
+        if (!allowed) { resultDiv.style.display = 'none'; paywallDiv.style.display = 'block'; return; }
+
+        paywallDiv.style.display = 'none';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div style="padding:20px;text-align:center;">🤔 宝宝正在头脑风暴中，小主请稍等哦...</div>';
+        generateBtn.disabled = true;
+
+        const prompt = `用户想买【${type}】，商家报价${price}元${target ? `，心理价位${target}元` : ''}。${extra ? `展开说说：${extra}` : ''}
+
+请根据商品类型给出实用的砍价小抄，要真实、接地气、符合现实：
+
+【砍价策略】1-2个最有效的思路
+
+【参考价格】
+⚠️ 如果你不确定真实的市场行情（如房价、车价），不要编造具体数字。
+可以告诉用户：建议去贝壳/链家查同小区成交价，或去懂车帝/汽车之家查车主真实成交价。
+只有用户提供了明确的竞品报价或网签价时，才给出具体参考。
+
+【话术参考】3-5句真实、自然的话术
+
+【注意事项】2-3条实用提醒
+
+针对不同商品的特殊要求：
+- 如果是【新车】：提醒月底25号之后去，可以拿竞品报价单压价，注意杂费（出库费、检测费可以谈掉）。💡保险话术：「保险可以在店里买，但我先说明，我可能出门就退。你与其让我退，不如直接给我个优惠价，或者让我自己买。」
+- 如果是【二手车】：提醒查同年份同款的市场价，注意看保养记录、出险记录，可以挑毛病（里程、划痕、轮胎磨损）
+- 如果是【新房】：提醒先查网签价，选6月/12月底去，可以一层层找领导要折扣，砍不动时要赠品
+- 如果是【二手房】：提醒多对比同小区成交价，可以挑房子毛病（楼层、朝向、装修）。如果没有真实成交数据，不要编价格，只告诉用户怎么查。💡话术原则：不要提醒对方「你亏了」，要说「不卖会更痛」。
+- 如果是【租房】：提醒一次性付半年/一年更容易砍价，可以挑毛病（家电旧、设施不齐）
+- 如果是【衣服/鞋子】：提醒假装不要、转身走人这招最有效
+- 如果是【数码产品】：提醒提前查好网上价格，用比价法
+`;
+
+        try {
+            const aiText = await callDeepSeek(prompt);
+            resultDiv.innerHTML = aiText.replace(/\n/g, '<br>').replace(/【/g, '<strong>【').replace(/】/g, '】</strong>');
+            if (useFree) addFreeUsedCount();
+            else if (usePaid) consumePaidCredit();
+        } catch (err) {
+            let errorMsg = err.message;
+            if (errorMsg.includes('InsufficientBalance')) {
+                errorMsg = '余额不足，请稍后再试。';
+                alert('⚠️ DeepSeek余额不足，请充值！');
+            }
+            resultDiv.innerHTML = `<span style="color:#b91c1c;">❌ 生成失败：${errorMsg}</span>`;
+        } finally { generateBtn.disabled = false; }
+    }
+
+    // ---------- 按钮绑定 ----------
+    document.getElementById('payOnceBtn')?.addEventListener('click', () => { goToPayment(0.9, 'once'); });
+    document.getElementById('payLifetimeBtn')?.addEventListener('click', () => { goToPayment(9.9, 'lifetime'); });
+    document.getElementById('unlockBtn')?.addEventListener('click', () => {
+        const code = prompt('请输入你在面包多获得的激活码：');
+        if (!code) return;
+        if (code === LIFETIME_CODE) {
+            unlockLifetime();
+        } else if (code === SINGLE_CODE) {
+            activateSingleUse();
+        } else {
+            alert('激活码错误，请确认后重新输入。如果已付款但未收到码，请联系作者。');
+        }
+    });
+
+    window.onload = () => {
+        monitorAndWarn();
+        document.getElementById('generateBtn').onclick = generate;
+        if (isLifetimeUser()) {
+            const paywall = document.getElementById('paywall');
+            if (paywall) paywall.style.display = 'none';
+        }
+    };
+</script>
+</body>
+</html>
